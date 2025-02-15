@@ -5,6 +5,8 @@ import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import ttk, messagebox, simpledialog
 from PIL import Image, ImageTk
+import os
+import sys
 
 connected_clients = set()
 
@@ -66,7 +68,12 @@ root.title("Chat App")
 root.geometry("500x600")
 
 # Set the icon for the application
-icon_path = "cheesidibbl.png"  # Make sure the icon file is in the same directory as this script
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+icon_path = resource_path("cheesidibbl.png")
 root.iconphoto(False, tk.PhotoImage(file=icon_path))
 
 # Prompt for user name
