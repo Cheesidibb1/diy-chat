@@ -33,6 +33,7 @@ def update_chat_log(message):
     chat_log.config(state=tk.NORMAL)
     chat_log.insert(tk.END, f"{message}\n")
     chat_log.config(state=tk.DISABLED)
+    chat_log.yview(tk.END)  # Auto-scroll to the end
 
 # Create an event loop
 loop = asyncio.new_event_loop()
@@ -64,6 +65,10 @@ root = tk.Tk()
 root.title("Chat App")
 root.geometry("500x600")
 
+# Set the icon for the application
+icon_path = "cheesidibbl.png"  # Make sure the icon file is in the same directory as this script
+root.iconphoto(False, tk.PhotoImage(file=icon_path))
+
 # Prompt for user name
 user_name = simpledialog.askstring("Name", "What is your name?", parent=root)
 if not user_name:
@@ -79,18 +84,22 @@ style.configure("TEntry", font=(font_neon, 14))
 style.configure("TFrame", font=(font_neon, 14))  # for frames
 style.configure("TCheckbutton", font=(font_neon, 14))  # for checkboxes
 
-# Chat log
+# Chat log with scrollbar
 display_frame = tk.Frame(root)
-display_frame.pack(pady=10)
-chat_log = tk.Text(display_frame, state=tk.DISABLED, height=20, width=50, font=(font_neon, 12))
-chat_log.pack()
+display_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+chat_log = tk.Text(display_frame, state=tk.DISABLED, height=20, width=50, font=(font_neon, 12), wrap=tk.WORD)
+chat_log.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+scrollbar = tk.Scrollbar(display_frame, command=chat_log.yview)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+chat_log.config(yscrollcommand=scrollbar.set)
 
 # Chat entry
-chat_entry = tk.Entry(root, width=40, font=(font_neon, 12))
-chat_entry.pack(pady=5)
-
-send_button = tk.Button(root, text="Send", command=send_message, font=(font_neon, 12))
-send_button.pack(pady=5)
+entry_frame = tk.Frame(root)
+entry_frame.pack(pady=5, padx=10, fill=tk.X)
+chat_entry = tk.Entry(entry_frame, width=40, font=(font_neon, 12))
+chat_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+send_button = tk.Button(entry_frame, text="Send", command=send_message, font=(font_neon, 12))
+send_button.pack(side=tk.RIGHT)
 
 root.bind('<Return>', lambda event: send_message())
 root.bind('<Escape>', close_app)
