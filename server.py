@@ -30,7 +30,7 @@ async def echo(websocket, path):
 async def main():
     # Create a WebSocket server, listening on 0.0.0.0:8765
     async with websockets.serve(echo, "0.0.0.0", 8765):
-        print("Server is running at ws://localhost:8765")
+        print("Server is running at ws://0.0.0.0:8765")
         await asyncio.Future()  # Run forever
 
 # Start the server
