@@ -1,1 +1,1 @@
-pyhton -m PyInstaller --onefile --add-data "MonaspaceNeon-Regular.otf:." --add-data "cheesidibbl.png:." --icon "cheesidibbl.ico" chat.py
+python -m PyInstaller --onefile --add-data "MonaspaceArgon-SemiBold.otf;." --add-data "cheesidibbl.png;." --icon "cheesidibbl.ico" chat.py
