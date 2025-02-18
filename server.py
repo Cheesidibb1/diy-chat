@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 from datetime import datetime
+import socket
 
 connected_clients = set()
 
@@ -28,9 +29,12 @@ async def echo(websocket, path):
         print(f"Client disconnected: {websocket.remote_address}")
 
 async def main():
+    
     # Create a WebSocket server, listening on 0.0.0.0:8765
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
     async with websockets.serve(echo, "0.0.0.0", 8765):
-        print("Server is running at ws://0.0.0.0:8765")
+        print(f"Server is running at ws://{local_ip}:8765")
         await asyncio.Future()  # Run forever
 
 # Start the server
