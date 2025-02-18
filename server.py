@@ -10,7 +10,8 @@ banned_ips = set()
 async def echo(websocket, path):
     ip_address = websocket.remote_address[0]
     if ip_address in banned_ips:
-        print(f"Banned IP {ip_address} attempted to connect.")
+        print(f"Banned IP {ip_address} attempted to connect.\n")
+        await websocket.send("System: You have been banned.")
         await websocket.close()
         return
 
@@ -62,7 +63,7 @@ def handle_commands():
             ip_address = command.split(" ")[1]
             unban_ip(ip_address)
         elif command == "exit":
-            print("Exiting command handler.\n")
+            print("Exiting command handler.")
             break
         else:
             print("Unknown command.")
