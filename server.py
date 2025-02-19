@@ -1,6 +1,6 @@
 import asyncio
 import websockets
-from datetime import datetime
+from datetime import datetime, timedelta
 import socket
 import threading
 import random
@@ -11,6 +11,7 @@ connected_clients = set()
 banned_ips = set()
 admin_ips = set()
 mod_ips = set()
+kick_ips = set()
 
 async def echo(websocket, path):
     ip_address = websocket.remote_address[0]
@@ -19,7 +20,14 @@ async def echo(websocket, path):
         await websocket.send("System: You have been banned.")
         await websocket.close()
         return
-
+    elif ip_address in kick_ips:
+        kick_end_time = kick_ips[ip_address][1]
+        if datetime.now() < kick_end_time:
+            print(f"Kicked IP {ip_address} attempted to connect.\n")
+            await websocket.send("System: You have been kicked.")
+            await websocket.close(ip_address)
+            return
+    
     connected_clients.add(websocket)
     print(f"Client connected: {websocket.remote_address}")
     try:
@@ -47,6 +55,21 @@ async def echo(websocket, path):
                     await websocket.send(f"System: IP address {target_ip} has been unbanned.")
                 else:
                     await websocket.send("System: You do not have permission to unban IP addresses.")
+                continue
+            elif message.startswith("!kick "):
+                if ip_address in admin_ips or ip_address in mod_ips:
+                    target_ip = message.split(" ")[1]
+                    kick_end_time = datetime.now() + timedelta(minutes=int(message.split(" ")[2]))
+                    kick_ips.add(target_ip, kick_end_time)
+                    for client in connected_clients:
+                        if client.remote_address[0] == target_ip:
+                            await client.send("System: You have been kicked.")
+                            await client.close()
+                            break
+                        
+                    await websocket.send(f"System: IP address {target_ip} has been kicked.")
+                else:
+                    await websocket.send("System: You do not have permission to kick IP addresses.")
                 continue
             elif message.startswith("!rtd "):
                 rtdnum = int(message.split(" ")[1])
