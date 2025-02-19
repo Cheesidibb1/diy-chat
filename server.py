@@ -30,22 +30,74 @@ async def echo(websocket, path):
                 log_file.write(f"[{timestamp}] {ip_address}: {message}\n")
             
             print(f"Received message from {websocket.remote_address}: {message}")
-# COMMANDS COMMANDS COMMANDS COMMANDS COMMANDS
-            if message == "!ban":
+            
+            # Handle client commands
+            if message.startswith("!ban "):
                 if ip_address in admin_ips:
-                    ban_ip(ip_address)
+                    target_ip = message.split(" ")[1]
+                    ban_ip(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been banned.")
                 else: 
                     await websocket.send("System: You do not have permission to ban IP addresses.")
                 continue
-            elif message == "!unban":
+            elif message.startswith("!unban "):
                 if ip_address in admin_ips:
-                    unban_ip(ip_address)
+                    target_ip = message.split(" ")[1]
+                    unban_ip(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been unbanned.")
                 else:
                     await websocket.send("System: You do not have permission to unban IP addresses.")
                 continue
             elif message.startswith("!rtd "):
-                rtdnum = message.split(" ")[1]
-                websocket.send(random(0, rtdnum))
+                rtdnum = int(message.split(" ")[1])
+                result = random.randint(0, rtdnum)
+                await websocket.send(f"System: RTD result: {result}")
+            elif message == "!rpc":
+                rpc = random.choice(["rock", "paper", "scissors"])
+                await websocket.send(f"System: RPC result: {rpc}")
+            elif message.startswith("!admin "):
+                if ip_address in admin_ips:
+                    target_ip = message.split(" ")[1]
+                    admin_ips.add(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been made an admin.")
+                    await notify_user(target_ip, "You have been made an admin.")
+                else:
+                    await websocket.send("System: You do not have permission to make other users admins.")
+                continue
+            elif message.startswith("!unadmin "):
+                if ip_address in admin_ips:
+                    target_ip = message.split(" ")[1]
+                    admin_ips.discard(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been removed from admins.")
+                    await notify_user(target_ip, "You have been removed from admins.")
+                else:
+                    await websocket.send("System: You do not have permission to remove admin status from other users.")
+                continue
+            elif message.startswith("!mod "):
+                if ip_address in admin_ips:
+                    target_ip = message.split(" ")[1]
+                    mod_ips.add(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been made a moderator.")
+                    await notify_user(target_ip, "You have been made a moderator.")
+                else:
+                    await websocket.send("System: You do not have permission to make other users moderators.")
+                continue
+            elif message.startswith("!unmod "):
+                if ip_address in admin_ips:
+                    target_ip = message.split(" ")[1]
+                    mod_ips.discard(target_ip)
+                    await websocket.send(f"System: IP address {target_ip} has been removed from moderators.")
+                    await notify_user(target_ip, "You have been removed from moderators.")
+                else:
+                    await websocket.send("System: You do not have permission to remove moderator status from other users.")
+                continue
+            elif message == "!clients":
+                if ip_address in admin_ips:
+                    await websocket.send(f"System: Connected clients: {connected_clients}")
+                else:
+                    await websocket.send("System: You do not have permission to view connected clients.")
+                continue
+
             # Broadcast the message to all connected clients except the sender
             for client in connected_clients:
                 if client != websocket:
@@ -56,6 +108,12 @@ async def echo(websocket, path):
     finally:
         connected_clients.remove(websocket)
         print(f"Client disconnected: {websocket.remote_address}")
+
+async def notify_user(ip_address, message):
+    for client in connected_clients:
+        if client.remote_address[0] == ip_address:
+            await client.send(f"System: {message}")
+            break
 
 async def main():
     # Create a WebSocket server, listening on 0.0.0.0:8765
@@ -89,30 +147,34 @@ def handle_commands():
         elif command.startswith("!admin "):
             ip_address = command.split(" ")[1]
             admin_ips.add(ip_address)
+            print(f"IP address {ip_address} has been made an admin.")
         elif command.startswith("!unadmin "):
             ip_address = command.split(" ")[1]
             admin_ips.discard(ip_address)
+            print(f"IP address {ip_address} has been removed from admins.")
         elif command == "!admins":
-            print(f"Admin IP adresses: {admin_ips}")
+            print(f"Admin IP addresses: {admin_ips}")
         elif command.startswith("!mod "):
-            ip_adress = command.split(" ")[1]
-            mod_ips.add(ip_adress)
+            ip_address = command.split(" ")[1]
+            mod_ips.add(ip_address)
+            print(f"IP address {ip_address} has been made a moderator.")
         elif command.startswith("!unmod "):
-            ip_adress = command.split(" ")[1]
-            mod_ips.discard(ip_adress)
+            ip_address = command.split(" ")[1]
+            mod_ips.discard(ip_address)
+            print(f"IP address {ip_address} has been removed from moderators.")
         elif command == "!mods":
-            print(f"Moderator IP adresses: {mod_ips}")
+            print(f"Moderator IP addresses: {mod_ips}")
         elif command == "!help":
             print("Available commands:")
             print("!ban <ip_address> - Ban an IP address")
             print("!unban <ip_address> - Unban an IP address")
             print("!banned - List banned IP addresses")
             print("!clients - List connected clients")
-            print("!admin <ip adress> - Make an IP address an admin")
-            print("!unadmin <ip adress> - Remove admin status from an IP address")
+            print("!admin <ip_address> - Make an IP address an admin")
+            print("!unadmin <ip_address> - Remove admin status from an IP address")
             print("!admins - List admin IP addresses")
-            print("!mod <ip adress> - Make an IP address a moderator")
-            print("!unmod <ip adress> - Remove moderator status from an IP address")
+            print("!mod <ip_address> - Make an IP address a moderator")
+            print("!unmod <ip_address> - Remove moderator status from an IP address")
             print("!help - Show available commands")
             print("!exit - Exit the command handler")
         elif command == "!exit":
