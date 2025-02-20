@@ -13,9 +13,11 @@ admin_ips = set()
 mod_ips = set()
 kick_ips = {}
 
-# File paths for storing admin and moderator IP addresses
-ADMIN_FILE = "admins.txt"
-MOD_FILE = "mods.txt"
+# File paths for storing admin, moderator, banned, and kicked IP addresses
+ADMIN_FILE = "/logs/admins.txt"
+MOD_FILE = "/logs/mods.txt"
+BANNED_FILE = "/logs/banned.txt"
+KICKED_FILE = "/logs/kicked.txt"
 
 def load_ips(file_path):
     if os.path.exists(file_path):
@@ -28,9 +30,22 @@ def save_ips(file_path, ip_set):
         for ip in ip_set:
             file.write(f"{ip}\n")
 
-# Load admin and moderator IP addresses from files
+def load_kick_ips(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            return {line.split(",")[0]: datetime.fromisoformat(line.split(",")[1].strip()) for line in file}
+    return {}
+
+def save_kick_ips(file_path, ip_dict):
+    with open(file_path, "w") as file:
+        for ip, end_time in ip_dict.items():
+            file.write(f"{ip},{end_time.isoformat()}\n")
+
+# Load admin, moderator, banned, and kicked IP addresses from files
 admin_ips = load_ips(ADMIN_FILE)
 mod_ips = load_ips(MOD_FILE)
+banned_ips = load_ips(BANNED_FILE)
+kick_ips = load_kick_ips(KICKED_FILE)
 
 async def addlog(ip_address, message):
     with open("chat_log.txt", "a") as log_file:
@@ -96,6 +111,7 @@ async def echo(websocket, path):
                     target_ip = command.split(" ")[1]
                     kick_end_time = datetime.now() + timedelta(minutes=int(command.split(" ")[2]))
                     kick_ips[target_ip] = kick_end_time
+                    save_kick_ips(KICKED_FILE, kick_ips)
                     for client in connected_clients:
                         if client.remote_address[0] == target_ip:
                             await client.send("System: You have been kicked.")
@@ -205,10 +221,12 @@ async def main():
 
 def ban_ip(ip_address):
     banned_ips.add(ip_address)
+    save_ips(BANNED_FILE, banned_ips)
     print(f"IP address {ip_address} has been banned.")
 
 def unban_ip(ip_address):
     banned_ips.discard(ip_address)
+    save_ips(BANNED_FILE, banned_ips)
     print(f"IP address {ip_address} has been unbanned.")
 
 def handle_commands():
@@ -246,6 +264,13 @@ def handle_commands():
             mod_ips.discard(ip_address)
             save_ips(MOD_FILE, mod_ips)
             print(f"IP address {ip_address} has been removed from moderators.")
+        elif command.startswith("!kick "):
+            if ip_address in admin_ips or ip_address in mod_ips:
+                target_ip = command.split(" ")[1]
+                kick_end_time = datetime.now() + timedelta(minutes=int(command.split(" ")[2]))
+                kick_ips[target_ip] = kick_end_time
+                save_kick_ips(KICKED_FILE, kick_ips)
+                print(f"IP address {target_ip} has been kicked until {kick_end_time}.")
         elif command == "!mods":
             print(f"Moderator IP addresses: {mod_ips}")
         elif command == "!help":
@@ -259,6 +284,7 @@ def handle_commands():
             print("!admins - List admin IP addresses")
             print("!mod <ip_address> - Make an IP address a moderator")
             print("!unmod <ip_address> - Remove moderator status from an IP address")
+            print("!kick <ip_address> <minutes> - Kick an IP address for a specified number of minutes")
             print("!help - Show available commands")
             print("!exit - Exit the command handler")
         elif command == "!exit":
