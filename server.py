@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import socket
 import threading
 import random
-import sys
 import os
 
 # Global sets to manage clients and IP addresses
@@ -12,15 +11,36 @@ connected_clients = set()
 banned_ips = set()
 admin_ips = set()
 mod_ips = set()
-kick_ips = set()
+kick_ips = {}
+
+# File paths for storing admin and moderator IP addresses
+ADMIN_FILE = "admins.txt"
+MOD_FILE = "mods.txt"
+
+def load_ips(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            return set(line.strip() for line in file)
+    return set()
+
+def save_ips(file_path, ip_set):
+    with open(file_path, "w") as file:
+        for ip in ip_set:
+            file.write(f"{ip}\n")
+
+# Load admin and moderator IP addresses from files
+admin_ips = load_ips(ADMIN_FILE)
+mod_ips = load_ips(MOD_FILE)
 
 async def addlog(ip_address, message):
     with open("chat_log.txt", "a") as log_file:
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                log_file.write(f"[{timestamp}] {ip_address}: {message}\n")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_file.write(f"[{timestamp}] {ip_address}: {message}\n")
+
 async def echo(websocket, path):
     ip_address = websocket.remote_address[0]
-    addlog(ip_address, message)
+    await addlog(ip_address, "Connected")
+    
     # Check if the IP address is banned
     if ip_address in banned_ips:
         print(f"Banned IP {ip_address} attempted to connect.\n")
@@ -29,8 +49,8 @@ async def echo(websocket, path):
         return
     
     # Check if the IP address is kicked
-    elif ip_address in kick_ips:
-        kick_end_time = kick_ips[ip_address][1]
+    if ip_address in kick_ips:
+        kick_end_time = kick_ips[ip_address]
         if datetime.now() < kick_end_time:
             print(f"Kicked IP {ip_address} attempted to connect.\n")
             await websocket.send("System: You have been kicked.")
@@ -43,105 +63,114 @@ async def echo(websocket, path):
     try:
         async for message in websocket:
             # Log the message with a timestamp and IP address
-            
-            
+            await addlog(ip_address, message)
             print(f"Received message from {websocket.remote_address}: {message}")
             
+            # Parse the message to extract the username and command
+            if ": " in message:
+                user_name, command = message.split(": ", 1)
+            else:
+                continue
+            
             # Handle client commands
-            if message.startswith("!ban "):
+            if command.startswith("!ban "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     ban_ip(target_ip)
                     await websocket.send(f"System: IP address {target_ip} has been banned.")
-                    await addlog("System", f"IP address {ip_address} has been banned.")
                 else:
                     await websocket.send("System: You do not have permission to ban IP addresses.")
                 continue
             
-            elif message.startswith("!unban "):
+            elif command.startswith("!unban "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     unban_ip(target_ip)
                     await websocket.send(f"System: IP address {target_ip} has been unbanned.")
-                    await addlog("System", f"IP address {target_ip} has been unbanned.")
                 else:
                     await websocket.send("System: You do not have permission to unban IP addresses.")
                 continue
             
-            elif message.startswith("!kick "):
+            elif command.startswith("!kick "):
                 if ip_address in admin_ips or ip_address in mod_ips:
-                    target_ip = message.split(" ")[1]
-                    kick_end_time = datetime.now() + timedelta(minutes=int(message.split(" ")[2]))
+                    target_ip = command.split(" ")[1]
+                    kick_end_time = datetime.now() + timedelta(minutes=int(command.split(" ")[2]))
                     kick_ips[target_ip] = kick_end_time
                     for client in connected_clients:
                         if client.remote_address[0] == target_ip:
                             await client.send("System: You have been kicked.")
                             await client.close()
                             break
-                    await websocket.send(f"System: IP address {target_ip} has been kicked Until {kick_end_time}.")
-                    await addlog("System", f"IP address {target_ip} has been banned.")
+                    await websocket.send(f"System: IP address {target_ip} has been kicked until {kick_end_time}.")
                 else:
                     await websocket.send("System: You do not have permission to kick IP addresses.")
                 continue
             
-            elif message.startswith("!rtd "):
-                rtdnum = int(message.split(" ")[1])
-                result = random.randint(0, rtdnum)
-                await websocket.send(f"System: RTD result: {result}")
+            elif command.startswith("!rtd "):
+                try:
+                    rtdnum = int(command.split(" ")[1])
+                    result = random.randint(0, rtdnum)
+                    await websocket.send(f"System: RTD result: {result}")
+                except Exception as e:
+                    print(f"Error processing !rtd command: {e}")
+                    await websocket.send("System: Invalid RTD command.")
+                continue
             
-            elif message == "!rps":
+            elif command == "!rps":
                 rpc = random.choice(["rock", "paper", "scissors"])
                 await websocket.send(f"System: RPC result: {rpc}")
+                continue
             
-            elif message.startswith("!admin "):
+            elif command.startswith("!admin "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     admin_ips.add(target_ip)
+                    save_ips(ADMIN_FILE, admin_ips)
                     await websocket.send(f"System: IP address {target_ip} has been made an admin.")
                     await notify_user(target_ip, "You have been made an admin.")
-                    await addlog("System", f"IP address {target_ip} has been made admin.")
                 else:
                     await websocket.send("System: You do not have permission to make other users admins.")
                 continue
             
-            elif message.startswith("!unadmin "):
+            elif command.startswith("!unadmin "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     if target_ip in admin_ips:
                         admin_ips.discard(target_ip)
+                        save_ips(ADMIN_FILE, admin_ips)
                         await websocket.send(f"System: IP address {target_ip} has been removed from admins.")
                         await notify_user(target_ip, "You have been removed from admins.")
-                        await addlog("System", f"IP address {target_ip} has been demoted from admin.")
                     else:
-                        websocket.send(f"System: IP {target_ip} is not an admin.")
+                        await websocket.send(f"System: IP {target_ip} is not an admin.")
                 else:
                     await websocket.send("System: You do not have permission to remove admin status from other users.")
                 continue
             
-            elif message.startswith("!mod "):
+            elif command.startswith("!mod "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     if target_ip not in mod_ips:
                         mod_ips.add(target_ip)
+                        save_ips(MOD_FILE, mod_ips)
                         await websocket.send(f"System: IP address {target_ip} has been made a moderator.")
                         await notify_user(target_ip, "You have been made a moderator.")
-                        await addlog("System", f"IP address {target_ip} has been made mod.")
                 else:
                     await websocket.send("System: You do not have permission to make other users moderators.")
                 continue
             
-            elif message.startswith("!unmod "):
+            elif command.startswith("!unmod "):
                 if ip_address in admin_ips:
-                    target_ip = message.split(" ")[1]
+                    target_ip = command.split(" ")[1]
                     if target_ip in mod_ips:
                         mod_ips.discard(target_ip)
+                        save_ips(MOD_FILE, mod_ips)
                         await websocket.send(f"System: IP address {target_ip} has been removed from moderators.")
                         await notify_user(target_ip, "You have been removed from moderators.")
                 else:
                     await websocket.send("System: You do not have permission to remove moderator status from other users.")
                 continue
             
-            elif message == "!clients":
+            elif command == "!clients":
                 if ip_address in admin_ips or ip_address in mod_ips:
                     await websocket.send(f"System: Connected clients: {connected_clients}")
                 else:
@@ -151,13 +180,7 @@ async def echo(websocket, path):
             # Broadcast the message to all connected clients except the sender
             for client in connected_clients:
                 if client != websocket:
-                    if client in admin_ips:
-                        await client.send(f"Admin: {message}")
-                    elif client in mod_ips:
-                        await client.send(f"Mod: {message}")
-                    else:
-                        await client.send(message)
-                    print(f"Sent message to {client.remote_address}")
+                    await client.send(message)
     
     except websockets.ConnectionClosed as e:
         print(f"Connection closed: {e}")
@@ -204,20 +227,24 @@ def handle_commands():
         elif command.startswith("!admin "):
             ip_address = command.split(" ")[1]
             admin_ips.add(ip_address)
+            save_ips(ADMIN_FILE, admin_ips)
             print(f"IP address {ip_address} has been made an admin.")
         elif command.startswith("!unadmin "):
             ip_address = command.split(" ")[1]
             admin_ips.discard(ip_address)
+            save_ips(ADMIN_FILE, admin_ips)
             print(f"IP address {ip_address} has been removed from admins.")
         elif command == "!admins":
             print(f"Admin IP addresses: {admin_ips}")
         elif command.startswith("!mod "):
             ip_address = command.split(" ")[1]
             mod_ips.add(ip_address)
+            save_ips(MOD_FILE, mod_ips)
             print(f"IP address {ip_address} has been made a moderator.")
         elif command.startswith("!unmod "):
             ip_address = command.split(" ")[1]
             mod_ips.discard(ip_address)
+            save_ips(MOD_FILE, mod_ips)
             print(f"IP address {ip_address} has been removed from moderators.")
         elif command == "!mods":
             print(f"Moderator IP addresses: {mod_ips}")
