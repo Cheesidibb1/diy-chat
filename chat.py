@@ -19,7 +19,7 @@ async def websocket_client():
         connected_clients.add(ws)
         try:
             async for message in ws:
-                update_chat_log(f"Friend: {message}")
+                update_chat_log(f"{message}")
         except Exception as e:
             print(f"WebSocket error: {e}")
             connected_clients.remove(ws)
