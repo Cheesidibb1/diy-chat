@@ -1,0 +1,18 @@
+FROM ubuntu:latest
+
+# Install dependencies
+RUN apt install python3 python3-pip -y
+RUN pip3 install websockets
+
+# Copy source code
+COPY /src /app
+
+# Set working directory
+WORKDIR /app
+VOLUME /app
+
+# Expose port
+EXPOSE 8765
+
+# Run the application
+CMD ["python3", "server.py"]
