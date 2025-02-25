@@ -1,0 +1,131 @@
+@import url(https://github.com/githubnext/monaspace/blob/main/fonts/webfonts/MonaspaceArgon-Regular.woff2);
+
+* {
+    font-family: 'Monaspace Argon', sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-size: cover;
+    color: #dedee9;
+    background-color: #202020;
+    margin: 0; /* Remove default margin */
+}
+
+section {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    min-height: 100vh;
+    margin-bottom: 50px;
+    color: #4f5ce4;
+    padding: 50px;
+    overflow-wrap: break-word;
+}
+
+.hidden {
+    opacity: 0;
+    transition: all 3s;
+}
+
+.show {
+    opacity: 1;
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px 50px; /* Reduced padding to make the header less tall */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensure space between logo and navigation */
+    z-index: 99;
+    background-color: #6c7083; /* Ensure header background color */
+    border-radius: 20px;
+    box-sizing: border-box; /* Ensure padding is included in the width */
+}
+
+.logo { 
+    font-size: 2em;
+    color: #fff;
+    user-select: none;
+}
+
+.navigation {
+    display: flex; /* Use flexbox for navigation links */
+    gap: 20px; /* Add space between navigation links */
+    margin-left: auto; /* Push navigation to the right */
+    flex-wrap: wrap; /* Allow navigation links to wrap if necessary */
+}
+
+.navigation a {
+    position: relative;
+    font-size: 1.1em;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.navigation a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 3px;
+    background: #fff;
+    border-radius: 5px;
+    transform-origin: right;
+    transform: scaleX(0);
+    transition: transform .5s;
+}
+
+.navigation a:hover::after {
+    transform-origin: left;
+    transform: scaleX(1);
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 600px;
+    color: #fff;
+}
+
+#hello {
+    font-size: 5em;
+    color: #fff;
+    text-align: center;
+    margin-top: 100px; /* Add margin to push content below the header */
+}
+
+.about {
+    font-size: 1.5em;
+    color: #000;
+    background-color: #dedee9;
+    text-align: center;
+    width: 100%; /* Make the about section span the entire width */
+    padding: 20px; /* Add padding for spacing */
+    box-sizing: border-box; /* Include padding in the width */
+    flex: 1; /* Allow the about section to take up the remaining space */
+    display: flex;
+    flex-direction: column; /* Arrange children in a column */
+    justify-content: center;
+    align-items: center;
+}
+
+.about h1 {
+    font-size: 2em;
+    padding: 10px;
+    margin-bottom: 20px;
+}
