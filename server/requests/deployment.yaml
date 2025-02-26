@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatrequestserver-deployment
+spec:
+  replicas: 2  # Number of instances
+  selector:
+    matchLabels:
+      app: chatrequestserver
+  template:
+    metadata:
+      labels:
+        app: chatrequestserver
+    spec:
+      containers:
+        - name: chatrequestserver
+          image: my-dockerhub-username/chatrequestserver:latest  # Replace with your image
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 8765  # Adjust to your app’s port
