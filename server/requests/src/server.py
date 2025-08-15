@@ -231,7 +231,7 @@ def unban_ip(ip_address):
 
 def handle_commands():
     while True:
-        command = input("Enter command: ").strip()
+        command = 
         if command.startswith("!ban "):
             ip_address = command.split(" ")[1]
             ban_ip(ip_address)
@@ -296,5 +296,6 @@ def handle_commands():
 # Start the server and command handler
 server_thread = threading.Thread(target=lambda: asyncio.run(main()), daemon=True)
 server_thread.start()
+
 
 handle_commands()
