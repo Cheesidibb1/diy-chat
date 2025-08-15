@@ -231,7 +231,7 @@ def unban_ip(ip_address):
 
 def handle_commands():
     while True:
-        command = None
+        command = "nope"
         if command.startswith("!ban "):
             ip_address = command.split(" ")[1]
             ban_ip(ip_address)
@@ -299,4 +299,5 @@ server_thread.start()
 
 
 handle_commands()
+
 
