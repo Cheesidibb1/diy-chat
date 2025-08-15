@@ -298,6 +298,6 @@ server_thread = threading.Thread(target=lambda: asyncio.run(main()), daemon=True
 server_thread.start()
 
 
-handle_commands()
+
 
 
